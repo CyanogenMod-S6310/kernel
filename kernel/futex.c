@@ -2331,6 +2331,19 @@ static int futex_wait_requeue_pi(u32 __user *uaddr, unsigned int flags,
 	if (ret)
 		goto out_key2;
 
+<<<<<<< HEAD
+=======
+	/*
+	 * The check above which compares uaddrs is not sufficient for
+	 * shared futexes. We need to compare the keys:
+	 */
+	if (match_futex(&q.key, &key2)) {
+		queue_unlock(&q, hb);
+		ret = -EINVAL;
+		goto out_put_keys;
+	}
+
+>>>>>>> 67dd9bb... Squashed update of kernel from 3.4.104 to 3.4.105
 	/* Queue the futex_q, drop the hb lock, wait for wakeup. */
 	futex_wait_queue_me(hb, &q, to);
 
