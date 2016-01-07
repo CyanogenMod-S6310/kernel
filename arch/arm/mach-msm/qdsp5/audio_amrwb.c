@@ -6,7 +6,7 @@
  *
  * Copyright (C) 2008 Google, Inc.
  * Copyright (C) 2008 HTC Corporation
- * Copyright (c) 2009, 2011-2012 Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2009, 2011-2013 The Linux Foundation. All rights reserved.
  *
  * All source code in this file is licensed under the following license except
  * where indicated.
@@ -262,8 +262,10 @@ static int audamrwb_enable(struct audio *audio)
 		cfg.snd_method = RPC_SND_METHOD_MIDI;
 
 		rc = audmgr_enable(&audio->audmgr, &cfg);
-		if (rc < 0)
+		if (rc < 0) {
+			msm_adsp_dump(audio->audplay);
 			return rc;
+		}
 	}
 
 	if (msm_adsp_enable(audio->audplay)) {
@@ -307,8 +309,11 @@ static int audamrwb_disable(struct audio *audio)
 		wake_up(&audio->read_wait);
 		msm_adsp_disable(audio->audplay);
 		audpp_disable(audio->dec_id, audio);
-		if (audio->pcm_feedback == TUNNEL_MODE_PLAYBACK)
-			audmgr_disable(&audio->audmgr);
+		if (audio->pcm_feedback == TUNNEL_MODE_PLAYBACK) {
+			rc = audmgr_disable(&audio->audmgr);
+			if (rc < 0)
+				msm_adsp_dump(audio->audplay);
+		}
 		audio->out_needed = 0;
 		rmt_put_resource(audio);
 		audio->rmt_resource_released = 1;
@@ -1249,7 +1254,10 @@ static int audamrwb_process_eos(struct audio *audio,
 		rc = -EBUSY;
 		goto done;
 	}
-
+	if (mfield_size > audio->out[0].size) {
+		rc = -EINVAL;
+		goto done;
+	}
 	if (copy_from_user(frame->data, buf_start, mfield_size)) {
 		rc = -EFAULT;
 		goto done;
@@ -1307,6 +1315,10 @@ static ssize_t audamrwb_write(struct file *file, const char __user *buf,
 					rc = -EINVAL;
 					break;
 				}
+				if (mfield_size > audio->out[0].size) {
+					rc = -EINVAL;
+					break;
+				}
 				MM_DBG("mf offset_val %x\n", mfield_size);
 				if (copy_from_user(cpy_ptr, buf, mfield_size)) {
 					rc = -EFAULT;
@@ -1340,6 +1352,10 @@ static ssize_t audamrwb_write(struct file *file, const char __user *buf,
 		if (audio->reserved) {
 			MM_DBG("append reserved byte %x\n", audio->rsv_byte);
 			*cpy_ptr = audio->rsv_byte;
+			if (mfield_size > frame->size) {
+				rc = -EINVAL;
+				break;
+			}
 			xfer = (count > ((frame->size - mfield_size) - 1)) ?
 				((frame->size - mfield_size) - 1) : count;
 			cpy_ptr++;

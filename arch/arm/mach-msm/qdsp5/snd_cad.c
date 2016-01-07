@@ -3,7 +3,7 @@
  * interface to "snd" service on the baseband cpu
  * This code also borrows from snd.c, which is
  * Copyright (C) 2008 HTC Corporation
- * Copyright (c) 2009, 2012 Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2009, 2012 The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -301,8 +301,9 @@ static long snd_cad_ioctl(struct file *file, unsigned int cmd,
       && !defined(CONFIG_MACH_KYLEPLUS_CTC) && !defined(CONFIG_MACH_INFINITE_DUOS_CTC) \
       && !defined(CONFIG_MACH_KYLEPLUS_OPEN) && !defined(CONFIG_MACH_BAFFIN_DUOS_CTC) \
       && !defined(CONFIG_MACH_DELOS_DUOS_CTC) && !defined(CONFIG_MACH_NEVIS3G) && !defined(CONFIG_MACH_DELOS_OPEN) 
-		if (vol.method != SND_METHOD_VOICE) {
-			MM_ERR("set volume: invalid method\n");
+		if (vol.method != SND_METHOD_VOICE &&
+				vol.method != SND_METHOD_MIDI) {
+			MM_ERR("set volume: invalid method %d\n", vol.method);
 			rc = -EINVAL;
 			break;
 		}
@@ -476,7 +477,7 @@ static long snd_cad_vol_enable(const char *arg)
 	vmsg.args.device.rx_device = cpu_to_be32(vol.device.rx_device);
 	vmsg.args.device.tx_device = cpu_to_be32(vol.device.tx_device);
 	vmsg.args.method = cpu_to_be32(vol.method);
-	if (vol.method != SND_METHOD_VOICE) {
+	if (vol.method != SND_METHOD_VOICE && vol.method != SND_METHOD_MIDI) {
 		MM_ERR("snd_cad_ioctl set volume: invalid method\n");
 		rc = -EINVAL;
 		return rc;
@@ -487,7 +488,7 @@ static long snd_cad_vol_enable(const char *arg)
 	vmsg.args.client_data = 0;
 
 	MM_DBG("snd_cad_set_volume %d %d %d %d\n", vol.device.rx_device,
-			vol.device.rx_device, vol.method, vol.volume);
+			vol.device.tx_device, vol.method, vol.volume);
 
 	rc = msm_rpc_call(snd_cad_sys->ept,
 		SND_CAD_SET_VOLUME_PROC,
