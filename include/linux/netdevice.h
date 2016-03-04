@@ -2672,7 +2672,6 @@ static inline bool netif_supports_nofcs(struct net_device *dev)
 }
 
 extern struct pernet_operations __net_initdata loopback_net_ops;
-
 /* Logging, debugging and troubleshooting/diagnostic helpers. */
 
 /* netdev_printk helpers, similar to dev_printk */

@@ -1,6 +1,5 @@
 config BT_RFCOMM
 	tristate "RFCOMM protocol support"
-	depends on m
 	depends on BT
 	help
 	  RFCOMM provides connection oriented stream transport.  RFCOMM
@@ -17,4 +16,3 @@ config BT_RFCOMM_TTY
 	depends on TTY
 	help
 	  This option enables TTY emulation support for RFCOMM channels.
-

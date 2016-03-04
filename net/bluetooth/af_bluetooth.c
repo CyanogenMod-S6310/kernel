@@ -31,7 +31,7 @@
 #include <net/bluetooth/bluetooth.h>
 #include <linux/proc_fs.h>
 
-#define VERSION "2.18"
+#define VERSION "2.17"
 
 /* Bluetooth sockets */
 #define BT_MAX_PROTO	8
@@ -467,11 +467,7 @@ int bt_sock_ioctl(struct socket *sock, unsigned int cmd, unsigned long arg)
 		if (sk->sk_state == BT_LISTEN)
 			return -EINVAL;
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,31))
 		amount = sk->sk_sndbuf - sk_wmem_alloc_get(sk);
-#else
-		amount = sk->sk_sndbuf - atomic_read(&sk->sk_wmem_alloc);
-#endif
 		if (amount < 0)
 			amount = 0;
 		err = put_user(amount, (int __user *) arg);

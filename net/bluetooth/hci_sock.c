@@ -24,6 +24,7 @@
 
 /* Bluetooth HCI sockets. */
 
+#include <linux/module.h>
 #include <linux/export.h>
 #include <linux/compat.h>
 #include <asm/unaligned.h>

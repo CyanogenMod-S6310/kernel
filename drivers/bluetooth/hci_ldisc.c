@@ -586,19 +586,19 @@ static int __init hci_uart_init(void)
 		return err;
 	}
 
-#ifdef CPTCFG_BT_HCIUART_H4
+#ifdef CONFIG_BT_HCIUART_H4
 	h4_init();
 #endif
-#ifdef CPTCFG_BT_HCIUART_BCSP
+#ifdef CONFIG_BT_HCIUART_BCSP
 	bcsp_init();
 #endif
-#ifdef CPTCFG_BT_HCIUART_LL
+#ifdef CONFIG_BT_HCIUART_LL
 	ll_init();
 #endif
-#ifdef CPTCFG_BT_HCIUART_ATH3K
+#ifdef CONFIG_BT_HCIUART_ATH3K
 	ath_init();
 #endif
-#ifdef CPTCFG_BT_HCIUART_3WIRE
+#ifdef CONFIG_BT_HCIUART_3WIRE
 	h5_init();
 #endif
 
@@ -609,19 +609,19 @@ static void __exit hci_uart_exit(void)
 {
 	int err;
 
-#ifdef CPTCFG_BT_HCIUART_H4
+#ifdef CONFIG_BT_HCIUART_H4
 	h4_deinit();
 #endif
-#ifdef CPTCFG_BT_HCIUART_BCSP
+#ifdef CONFIG_BT_HCIUART_BCSP
 	bcsp_deinit();
 #endif
-#ifdef CPTCFG_BT_HCIUART_LL
+#ifdef CONFIG_BT_HCIUART_LL
 	ll_deinit();
 #endif
-#ifdef CPTCFG_BT_HCIUART_ATH3K
+#ifdef CONFIG_BT_HCIUART_ATH3K
 	ath_deinit();
 #endif
-#ifdef CPTCFG_BT_HCIUART_3WIRE
+#ifdef CONFIG_BT_HCIUART_3WIRE
 	h5_deinit();
 #endif
 

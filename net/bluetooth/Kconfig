@@ -3,10 +3,7 @@
 #
 
 menuconfig BT
-	depends on !BACKPORT_KERNEL_2_6_39
-	depends on !BACKPORT_KERNEL_2_6_29
 	tristate "Bluetooth subsystem support"
-	depends on m
 	depends on NET && !S390
 	depends on RFKILL || !RFKILL
 	depends on CRC16
@@ -15,7 +12,6 @@ menuconfig BT
 	depends on CRYPTO_AES
 	depends on CRYPTO_ECB
 	depends on CRYPTO_SHA256
-	select 6LOWPAN_IPHC
 	help
 	  Bluetooth is low-cost, low-power, short-range wireless technology.
 	  It was designed as a replacement for cables and other short-range
