@@ -610,7 +610,11 @@ extern long vt_compat_ioctl(struct tty_struct *tty,
 /* functions for preparation of BKL removal */
 extern void __lockfunc tty_lock(void) __acquires(tty_lock);
 extern void __lockfunc tty_unlock(void) __releases(tty_lock);
-
+extern struct task_struct *__big_tty_mutex_owner;
+#define tty_locked()		(current == __big_tty_mutex_owner)
+// @daniel, backport 3.13-1
+#define tty_port_register_device(port, driver, index, device) \
+	tty_register_device(driver, index, device)
 /*
  * this shall be called only from where BTM is held (like close)
  *

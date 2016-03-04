@@ -572,9 +572,19 @@ static __inline__ void sk_add_bind_node(struct sock *sk,
 {
 	hlist_add_head(&sk->sk_bind_node, list);
 }
-
+/*
 #define sk_for_each(__sk, node, list) \
 	hlist_for_each_entry(__sk, node, list, sk_node)
+#define sk_nulls_for_each(__sk, node, list) \
+	hlist_nulls_for_each_entry(__sk, node, list, sk_nulls_node)
+#define sk_nulls_for_each_rcu(__sk, node, list) \
+	hlist_nulls_for_each_entry_rcu(__sk, node, list, sk_nulls_node)
+#define sk_nulls_for_each_from(__sk, node) \
+	if (__sk && ({ node = &(__sk)->sk_nulls_node; 1; })) \
+		hlist_nulls_for_each_entry_from(__sk, node, sk_nulls_node)
+*/
+#define sk_for_each(__sk, list) \
+	hlist_for_each_entry(__sk, list, sk_node)
 #define sk_for_each_rcu(__sk, node, list) \
 	hlist_for_each_entry_rcu(__sk, node, list, sk_node)
 #define sk_nulls_for_each(__sk, node, list) \
@@ -1320,6 +1330,15 @@ static inline void sk_wmem_free_skb(struct sock *sk, struct sk_buff *skb)
 	sk_mem_uncharge(sk, skb->truesize);
 	__kfree_skb(skb);
 }
+
+/*
+ * backport SOCK_SELECT_ERR_QUEUE -- see commit
+ * "net: add option to enable error queue packets waking select"
+ *
+ * Adding 14 to SOCK_QUEUE_SHRUNK will reach a bet that can't be
+ * set on older kernels, so sock_flag() will always return false.
+ */
+#define SOCK_SELECT_ERR_QUEUE (SOCK_QUEUE_SHRUNK + 14)
 
 /* Used by processes to "lock" a socket state, so that
  * interrupts and bottom half handlers won't change it

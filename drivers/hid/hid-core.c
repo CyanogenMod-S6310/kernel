@@ -1949,6 +1949,7 @@ static bool hid_ignore(struct hid_device *hdev)
 
 	return !!hid_match_id(hdev, hid_ignore_list);
 }
+EXPORT_SYMBOL_GPL(hid_ignore);
 
 int hid_add_device(struct hid_device *hdev)
 {
