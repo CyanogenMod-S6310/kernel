@@ -4,7 +4,6 @@ menu "Bluetooth device drivers"
 
 config BT_HCIBTUSB
 	tristate "HCI USB driver"
-	depends on m
 	depends on USB
 	help
 	  Bluetooth HCI USB driver.
@@ -16,7 +15,6 @@ config BT_HCIBTUSB
 
 config BT_HCIBTSDIO
 	tristate "HCI SDIO driver"
-	depends on m
 	depends on MMC
 	help
 	  Bluetooth HCI SDIO driver.
@@ -28,8 +26,6 @@ config BT_HCIBTSDIO
 
 config BT_HCIUART
 	tristate "HCI UART driver"
-	depends on m
-	depends on TTY
 	help
 	  Bluetooth HCI UART driver.
 	  This driver is required if you want to use Bluetooth devices with
@@ -99,9 +95,8 @@ config BT_HCIUART_3WIRE
 
 config BT_HCIBCM203X
 	tristate "HCI BCM203x USB driver"
-	depends on m
 	depends on USB
-	select BACKPORT_FW_LOADER
+	select FW_LOADER
 	help
 	  Bluetooth HCI BCM203x USB driver.
 	  This driver provides the firmware loading mechanism for the Broadcom
@@ -112,7 +107,6 @@ config BT_HCIBCM203X
 
 config BT_HCIBPA10X
 	tristate "HCI BPA10x USB driver"
-	depends on m
 	depends on USB
 	help
 	  Bluetooth HCI BPA10x USB driver.
@@ -122,11 +116,18 @@ config BT_HCIBPA10X
 	  Say Y here to compile support for HCI BPA10x devices into the
 	  kernel or say M to compile it as module (bpa10x).
 
+config BT_MSM_SLEEP
+	tristate "MSM Bluesleep driver"
+	depends on BT && SERIAL_MSM_HS
+	default n
+	help
+	  Bluetooth MSM bluesleep driver.
+	  This driver provides support for BTS sleep.
+
 config BT_HCIBFUSB
 	tristate "HCI BlueFRITZ! USB driver"
-	depends on m
 	depends on USB
-	select BACKPORT_FW_LOADER
+	select FW_LOADER
 	help
 	  Bluetooth HCI BlueFRITZ! USB driver.
 	  This driver provides support for Bluetooth USB devices with AVM
@@ -138,7 +139,6 @@ config BT_HCIBFUSB
 
 config BT_HCIDTL1
 	tristate "HCI DTL1 (PC Card) driver"
-	depends on m
 	depends on PCMCIA
 	help
 	  Bluetooth HCI DTL1 (PC Card) driver.
@@ -152,9 +152,8 @@ config BT_HCIDTL1
 
 config BT_HCIBT3C
 	tristate "HCI BT3C (PC Card) driver"
-	depends on m
 	depends on PCMCIA
-	select BACKPORT_FW_LOADER
+	select FW_LOADER
 	help
 	  Bluetooth HCI BT3C (PC Card) driver.
 	  This driver provides support for Bluetooth PCMCIA devices with
@@ -167,7 +166,6 @@ config BT_HCIBT3C
 
 config BT_HCIBLUECARD
 	tristate "HCI BlueCard (PC Card) driver"
-	depends on m
 	depends on PCMCIA
 	help
 	  Bluetooth HCI BlueCard (PC Card) driver.
@@ -181,7 +179,6 @@ config BT_HCIBLUECARD
 
 config BT_HCIBTUART
 	tristate "HCI UART (PC Card) device driver"
-	depends on m
 	depends on PCMCIA
 	help
 	  Bluetooth HCI UART (PC Card) driver.
@@ -198,7 +195,6 @@ config BT_HCIBTUART
 
 config BT_HCIVHCI
 	tristate "HCI VHCI (Virtual HCI device) driver"
-	depends on m
 	help
 	  Bluetooth Virtual HCI device driver.
 	  This driver is required if you want to use HCI Emulation software.
@@ -208,7 +204,6 @@ config BT_HCIVHCI
 
 config BT_MRVL
 	tristate "Marvell Bluetooth driver support"
-	depends on m
 	help
 	  The core driver to support Marvell Bluetooth devices.
 
@@ -220,9 +215,8 @@ config BT_MRVL
 
 config BT_MRVL_SDIO
 	tristate "Marvell BT-over-SDIO driver"
-	depends on m
 	depends on BT_MRVL && MMC
-	select BACKPORT_FW_LOADER
+	select FW_LOADER
 	help
 	  The driver for Marvell Bluetooth chipsets with SDIO interface.
 
@@ -233,11 +227,17 @@ config BT_MRVL_SDIO
 	  Say Y here to compile support for Marvell BT-over-SDIO driver
 	  into the kernel or say M to compile it as module.
 
+config MSM_BT_POWER
+	tristate "MSM Bluetooth Power Control"
+	depends on ARCH_MSM && RFKILL
+	help
+	  Provides a parameter to switch on/off power from PMIC
+	  to Bluetooth device.
+
 config BT_ATH3K
 	tristate "Atheros firmware download driver"
-	depends on m
 	depends on BT_HCIBTUSB
-	select BACKPORT_FW_LOADER
+	select FW_LOADER
 	help
 	  Bluetooth firmware download driver.
 	  This driver loads the firmware into the Atheros Bluetooth
@@ -249,7 +249,6 @@ config BT_ATH3K
 config BT_WILINK
 	depends on !BACKPORT_KERNEL_2_6_39
 	tristate "Texas Instruments WiLink7 driver"
-	depends on m
 	depends on TI_ST
 	help
 	  This enables the Bluetooth driver for Texas Instrument's BT/FM/GPS

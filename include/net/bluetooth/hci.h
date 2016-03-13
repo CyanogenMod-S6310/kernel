@@ -44,6 +44,8 @@
 #define HCI_DEV_DOWN			4
 #define HCI_DEV_SUSPEND			5
 #define HCI_DEV_RESUME			6
+#define HCI_DEV_WRITE			7
+#define HCI_DEV_READ			8
 
 /* HCI notify events */
 #define HCI_NOTIFY_CONN_ADD		1
@@ -58,7 +60,6 @@
 #define HCI_RS232	4
 #define HCI_PCI		5
 #define HCI_SDIO	6
-#define HCI_SMD		7
 
 /* HCI controller types */
 #define HCI_BREDR	0x00
@@ -85,7 +86,7 @@ enum {
 	HCI_QUIRK_RESET_ON_CLOSE,
 	HCI_QUIRK_RAW_DEVICE,
 	HCI_QUIRK_FIXUP_BUFFER_SIZE,
-	HCI_QUIRK_BROKEN_STORED_LINK_KEY
+	HCI_QUIRK_BROKEN_STORED_LINK_KEY,
 };
 
 /* HCI device flags */
@@ -133,7 +134,7 @@ enum {
 	HCI_PERIODIC_INQ,
 	HCI_FAST_CONNECTABLE,
 	HCI_BREDR_ENABLED,
-        HCI_6LOWPAN_ENABLED,
+	HCI_6LOWPAN_ENABLED,
 };
 
 /* A mask for the flags that are supposed to remain when a reset happens
@@ -214,6 +215,14 @@ enum {
 #define SCO_ESCO_MASK  (ESCO_HV1 | ESCO_HV2 | ESCO_HV3)
 #define EDR_ESCO_MASK  (ESCO_2EV3 | ESCO_3EV3 | ESCO_2EV5 | ESCO_3EV5)
 
+#ifdef CONFIG_BT_CSR_7820
+#define ALL_ESCO_MASK (SCO_ESCO_MASK | ESCO_EV3 | ESCO_EV4 | /*ESCO_EV5 |*/ \
+ESCO_2EV3 /*EDR_ESCO_MASK*/)
+#else
+#define ALL_ESCO_MASK (SCO_ESCO_MASK | ESCO_EV3 | ESCO_EV4 | ESCO_EV5 | \
+EDR_ESCO_MASK)
+#endif
+
 /* ACL flags */
 #define ACL_START_NO_FLUSH	0x00
 #define ACL_CONT		0x01
@@ -278,10 +287,10 @@ enum {
 #define LMP_EXTFEATURES	0x80
 
 /* Extended LMP features */
-#define LMP_CSB_MASTER       0x01
-#define LMP_CSB_SLAVE        0x02
-#define LMP_SYNC_TRAIN       0x04
-#define LMP_SYNC_SCAN        0x08
+#define LMP_CSB_MASTER	0x01
+#define LMP_CSB_SLAVE	0x02
+#define LMP_SYNC_TRAIN	0x04
+#define LMP_SYNC_SCAN	0x08
 
 /* Host features */
 #define LMP_HOST_SSP		0x01

@@ -24,7 +24,7 @@
 
 /* Bluetooth HCI connection handling. */
 
-#include <linux/module.h>
+#include <linux/export.h>
 
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>
@@ -790,6 +790,13 @@ int hci_conn_security(struct hci_conn *conn, __u8 sec_level, __u8 auth_type)
 	/* For sdp we don't need the link key. */
 	if (sec_level == BT_SECURITY_SDP)
 		return 1;
+
+	#ifdef CONFIG_BT_CSR_7820
+	if (conn->hdev->ssp_mode == 0) {
+		BT_ERR("SET SSP manually again...");
+		conn->hdev->ssp_mode = 0x01;
+	}
+	#endif
 
 	/* For non 2.1 devices and low security level we don't need the link
 	   key. */

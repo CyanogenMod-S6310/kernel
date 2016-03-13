@@ -14,6 +14,7 @@
 #include <linux/if_arp.h>
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
+#include <linux/version.h>
 
 #include <net/ipv6.h>
 #include <net/ip6_route.h>
@@ -27,7 +28,7 @@
 
 #include "6lowpan.h"
 
-#include "../ieee802154/6lowpan.h" /* for the compression support */
+#include <net/6lowpan.h> /* for the compression support */
 
 #define IFACE_NAME_TEMPLATE "bt%d"
 #define EUI64_ADDR_LEN 8

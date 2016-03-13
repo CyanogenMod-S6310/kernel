@@ -24,10 +24,10 @@
 
 /* Bluetooth HCI sockets. */
 
-#include <linux/module.h>
 #include <linux/export.h>
 #include <linux/compat.h>
 #include <asm/unaligned.h>
+#include <linux/version.h>
 
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>

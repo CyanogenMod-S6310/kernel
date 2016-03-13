@@ -25,7 +25,7 @@
 
 /* Bluetooth HCI core. */
 
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/idr.h>
 #include <linux/rfkill.h>
 #include <linux/debugfs.h>
@@ -49,11 +49,24 @@ DEFINE_RWLOCK(hci_cb_list_lock);
 /* HCI ID Numbering */
 static DEFINE_IDA(hci_index_ida);
 
+/* HCI notifiers list */
+static ATOMIC_NOTIFIER_HEAD(hci_notifier);
+
 /* ---- HCI notifications ---- */
+
+int hci_register_notifier(struct notifier_block *nb)
+{
+	return atomic_notifier_chain_register(&hci_notifier, nb);
+}
+
+int hci_unregister_notifier(struct notifier_block *nb)
+{
+	return atomic_notifier_chain_unregister(&hci_notifier, nb);
+}
 
 static void hci_notify(struct hci_dev *hdev, int event)
 {
-	hci_sock_dev_event(hdev, event);
+	atomic_notifier_call_chain(&hci_notifier, event, hdev);
 }
 
 /* ---- HCI debugfs entries ---- */
@@ -635,6 +648,49 @@ static int conn_max_interval_get(void *data, u64 *val)
 
 DEFINE_SIMPLE_ATTRIBUTE(conn_max_interval_fops, conn_max_interval_get,
 			conn_max_interval_set, "%llu\n");
+
+static ssize_t lowpan_read(struct file *file, char __user *user_buf,
+			   size_t count, loff_t *ppos)
+{
+	struct hci_dev *hdev = file->private_data;
+	char buf[3];
+
+	buf[0] = test_bit(HCI_6LOWPAN_ENABLED, &hdev->dev_flags) ? 'Y' : 'N';
+	buf[1] = '\n';
+	buf[2] = '\0';
+	return simple_read_from_buffer(user_buf, count, ppos, buf, 2);
+}
+
+static ssize_t lowpan_write(struct file *fp, const char __user *user_buffer,
+			    size_t count, loff_t *position)
+{
+	struct hci_dev *hdev = fp->private_data;
+	bool enable;
+	char buf[32];
+	size_t buf_size = min(count, (sizeof(buf)-1));
+
+	if (copy_from_user(buf, user_buffer, buf_size))
+		return -EFAULT;
+
+	buf[buf_size] = '\0';
+
+	if (strtobool(buf, &enable) < 0)
+		return -EINVAL;
+
+	if (enable == test_bit(HCI_6LOWPAN_ENABLED, &hdev->dev_flags))
+		return -EALREADY;
+
+	change_bit(HCI_6LOWPAN_ENABLED, &hdev->dev_flags);
+
+	return count;
+}
+
+static const struct file_operations lowpan_debugfs_fops = {
+	.open		= simple_open,
+	.read		= lowpan_read,
+	.write		= lowpan_write,
+	.llseek		= default_llseek,
+};
 
 /* ---- HCI requests ---- */
 
@@ -1228,7 +1284,7 @@ static void hci_set_event_mask_page_2(struct hci_request *req)
 	/* If Connectionless Slave Broadcast master role is supported
 	 * enable all necessary events for it.
 	 */
-	if (hdev->features[2][0] & 0x01) {
+	if (lmp_csb_master_capable(hdev)) {
 		events[1] |= 0x40;	/* Triggered Clock Capture */
 		events[1] |= 0x80;	/* Synchronization Train Complete */
 		events[2] |= 0x10;	/* Slave Page Response Timeout */
@@ -1238,7 +1294,7 @@ static void hci_set_event_mask_page_2(struct hci_request *req)
 	/* If Connectionless Slave Broadcast slave role is supported
 	 * enable all necessary events for it.
 	 */
-	if (hdev->features[2][0] & 0x02) {
+	if (lmp_csb_slave_capable(hdev)) {
 		events[2] |= 0x01;	/* Synchronization Train Received */
 		events[2] |= 0x02;	/* CSB Receive */
 		events[2] |= 0x04;	/* CSB Timeout */
@@ -1261,8 +1317,13 @@ static void hci_init3_req(struct hci_request *req, unsigned long opt)
 	 * as supported send it. If not supported assume that the controller
 	 * does not have actual support for stored link keys which makes this
 	 * command redundant anyway.
+	 *
+	 * Some controllers indicate that they support handling deleting
+	 * stored link keys, but they don't. The quirk lets a driver
+	 * just disable this command.
 	 */
-	if (hdev->commands[6] & 0x80) {
+	if (hdev->commands[6] & 0x80 &&
+	    !test_bit(HCI_QUIRK_BROKEN_STORED_LINK_KEY, &hdev->quirks)) {
 		struct hci_cp_delete_stored_link_key cp;
 
 		bacpy(&cp.bdaddr, BDADDR_ANY);
@@ -1275,15 +1336,17 @@ static void hci_init3_req(struct hci_request *req, unsigned long opt)
 		hci_setup_link_policy(req);
 
 	if (lmp_le_capable(hdev)) {
-		/* If the controller has a public BD_ADDR, then by
-		 * default use that one. If this is a LE only
-		 * controller without one, default to the random
-		 * address.
-		 */
-		if (bacmp(&hdev->bdaddr, BDADDR_ANY))
-			hdev->own_addr_type = ADDR_LE_DEV_PUBLIC;
-		else
-			hdev->own_addr_type = ADDR_LE_DEV_RANDOM;
+		if (test_bit(HCI_SETUP, &hdev->dev_flags)) {
+			/* If the controller has a public BD_ADDR, then
+			 * by default use that one. If this is a LE only
+			 * controller without a public address, default
+			 * to the random address.
+			 */
+			if (bacmp(&hdev->bdaddr, BDADDR_ANY))
+				hdev->own_addr_type = ADDR_LE_DEV_PUBLIC;
+			else
+				hdev->own_addr_type = ADDR_LE_DEV_RANDOM;
+		}
 
 		hci_set_le_support(req);
 	}
@@ -1307,7 +1370,7 @@ static void hci_init4_req(struct hci_request *req, unsigned long opt)
 		hci_set_event_mask_page_2(req);
 
 	/* Check for Synchronization Train support */
-	if (hdev->features[2][0] & 0x04)
+	if (lmp_sync_train_capable(hdev))
 		hci_req_add(req, HCI_OP_READ_SYNC_TRAIN_PARAMS, 0, NULL);
 }
 
@@ -1404,6 +1467,8 @@ static int __hci_init(struct hci_dev *hdev)
 				    hdev, &conn_min_interval_fops);
 		debugfs_create_file("conn_max_interval", 0644, hdev->debugfs,
 				    hdev, &conn_max_interval_fops);
+		debugfs_create_file("6lowpan", 0644, hdev->debugfs, hdev,
+				    &lowpan_debugfs_fops);
 	}
 
 	return 0;
@@ -3319,6 +3384,10 @@ static void hci_send_frame(struct hci_dev *hdev, struct sk_buff *skb)
 	/* Get rid of skb owner, prior to sending to the driver. */
 	skb_orphan(skb);
 
+	#ifdef CONFIG_BT_CSR_7820
+	hci_notify(hdev, HCI_DEV_WRITE);
+	#endif
+
 	if (hdev->send(hdev, skb) < 0)
 		BT_ERR("%s sending frame failed", hdev->name);
 }
@@ -3454,23 +3523,8 @@ void *hci_sent_cmd_data(struct hci_dev *hdev, __u16 opcode)
 {
 	struct hci_command_hdr *hdr;
 
-	// @daniel, from bluetooth_mgmt SS_BLUETOOTH(is80.hwang) 2012.05.16
-	// Check null pointer and opcode
-	#if defined(CONFIG_BT_CSR8811)
-	if (hdev == NULL) {
-		BT_ERR("hci_sent_cmd_opcode:: hdev=NULL, opcode=0x%x", opcode);
-		return NULL;
-	}
-	// @
 	if (!hdev->sent_cmd)
 		return NULL;
-	// @daniel
-	if (hdev->sent_cmd->data == NULL) {
-		BT_ERR("hci_sent_cmd_opcode:: hdev->sent_cmd->data=NULL opcode=0x%x", opcode);
-		return NULL;
-	}
-	#endif
-	// SS_BLUEZ_BT(is80.hwang) End 
 
 	hdr = (void *) hdev->sent_cmd->data;
 

@@ -30,7 +30,6 @@
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>
 #include <net/bluetooth/l2cap.h>
-#include <compat/linux/compat-2.6.29.h>
 
 #include "bnep.h"
 
@@ -50,7 +49,7 @@ static int bnep_net_close(struct net_device *dev)
 
 static void bnep_net_set_mc_list(struct net_device *dev)
 {
-#ifdef CONFIG_BT_BNEP_MC_FILTER
+#ifdef CPTCFG_BT_BNEP_MC_FILTER
 	struct bnep_session *s = netdev_priv(dev);
 	struct sock *sk = s->sock->sk;
 	struct bnep_set_filter_req *r;
@@ -94,8 +93,10 @@ static void bnep_net_set_mc_list(struct net_device *dev)
 		netdev_for_each_mc_addr(ha, dev) {
 			if (i == BNEP_MAX_MULTICAST_FILTERS)
 				break;
-			memcpy(__skb_put(skb, ETH_ALEN), ha->addr, ETH_ALEN);
-			memcpy(__skb_put(skb, ETH_ALEN), ha->addr, ETH_ALEN);
+			memcpy(__skb_put(skb, ETH_ALEN), mc_addr(ha),
+			       ETH_ALEN);
+			memcpy(__skb_put(skb, ETH_ALEN), mc_addr(ha),
+			       ETH_ALEN);
 
 			i++;
 		}
@@ -119,7 +120,7 @@ static void bnep_net_timeout(struct net_device *dev)
 	netif_wake_queue(dev);
 }
 
-#ifdef CONFIG_BT_BNEP_MC_FILTER
+#ifdef CPTCFG_BT_BNEP_MC_FILTER
 static int bnep_net_mc_filter(struct sk_buff *skb, struct bnep_session *s)
 {
 	struct ethhdr *eh = (void *) skb->data;
@@ -130,7 +131,7 @@ static int bnep_net_mc_filter(struct sk_buff *skb, struct bnep_session *s)
 }
 #endif
 
-#ifdef CONFIG_BT_BNEP_PROTO_FILTER
+#ifdef CPTCFG_BT_BNEP_PROTO_FILTER
 /* Determine ether protocol. Based on eth_type_trans. */
 static u16 bnep_net_eth_proto(struct sk_buff *skb)
 {
@@ -170,14 +171,14 @@ static netdev_tx_t bnep_net_xmit(struct sk_buff *skb,
 
 	BT_DBG("skb %p, dev %p", skb, dev);
 
-#ifdef CONFIG_BT_BNEP_MC_FILTER
+#ifdef CPTCFG_BT_BNEP_MC_FILTER
 	if (bnep_net_mc_filter(skb, s)) {
 		kfree_skb(skb);
 		return NETDEV_TX_OK;
 	}
 #endif
 
-#ifdef CONFIG_BT_BNEP_PROTO_FILTER
+#ifdef CPTCFG_BT_BNEP_PROTO_FILTER
 	if (bnep_net_proto_filter(skb, s)) {
 		kfree_skb(skb);
 		return NETDEV_TX_OK;

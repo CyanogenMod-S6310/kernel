@@ -1,6 +1,5 @@
 config BT_BNEP
 	tristate "BNEP protocol support"
-	depends on m
 	depends on BT
 	depends on CRC32
 	help

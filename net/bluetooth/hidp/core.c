@@ -20,31 +20,12 @@
    COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS
    SOFTWARE IS DISCLAIMED.
 */
+
 #include <linux/kref.h>
 #include <linux/module.h>
 #include <linux/file.h>
 #include <linux/kthread.h>
 #include <linux/hidraw.h>
-
-#include <linux/interrupt.h>
-#include <linux/types.h>
-#include <linux/errno.h>
-#include <linux/kernel.h>
-#include <linux/sched.h>
-#include <linux/slab.h>
-#include <linux/poll.h>
-#include <linux/freezer.h>
-#include <linux/fcntl.h>
-#include <linux/skbuff.h>
-#include <linux/socket.h>
-#include <linux/ioctl.h>
-#include <linux/file.h>
-#include <linux/init.h>
-#include <linux/wait.h>
-#include <net/sock.h>
-
-#include <linux/input.h>
-#include <linux/hid.h>
 
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>
@@ -53,6 +34,8 @@
 #include "hidp.h"
 
 #define VERSION "1.2"
+
+extern bool hid_ignore(struct hid_device *);
 
 static DECLARE_RWSEM(hidp_session_sem);
 static LIST_HEAD(hidp_session_list);
@@ -372,7 +355,6 @@ err:
 	return ret;
 }
 
-#if defined(CPTCFG_BACKPORT_OPTION_BT_SOCK_CREATE_NEEDS_KERN)
 static int hidp_output_raw_report(struct hid_device *hid, unsigned char *data, size_t count,
 		unsigned char report_type)
 {
@@ -430,16 +412,6 @@ err:
 	mutex_unlock(&session->report_mutex);
 	return ret;
 }
-#elif (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,27))
-static int hidp_output_raw_report(struct hid_device *hid, unsigned char *data, size_t count)
-{
-	if (hidp_send_ctrl_message(hid->driver_data,
-			HIDP_TRANS_SET_REPORT | HIDP_DATA_RTYPE_FEATURE,
-			data, count))
-		return -ENOMEM;
-	return count;
-}
-#endif
 
 static void hidp_idle_timeout(unsigned long arg)
 {
@@ -458,6 +430,16 @@ static void hidp_del_timer(struct hidp_session *session)
 {
 	if (session->idle_to > 0)
 		del_timer(&session->timer);
+}
+
+static void hidp_process_report(struct hidp_session *session,
+				int type, const u8 *data, int len, int intr)
+{
+	if (len > HID_MAX_BUFFER_SIZE)
+		len = HID_MAX_BUFFER_SIZE;
+
+	memcpy(session->input_buf, data, len);
+	hid_input_report(session->hid, type, session->input_buf, len, intr);
 }
 
 static void hidp_process_handshake(struct hidp_session *session,
@@ -532,7 +514,8 @@ static int hidp_process_data(struct hidp_session *session, struct sk_buff *skb,
 			hidp_input_report(session, skb);
 
 		if (session->hid)
-			hid_input_report(session->hid, HID_INPUT_REPORT, skb->data, skb->len, 0);
+			hidp_process_report(session, HID_INPUT_REPORT,
+					    skb->data, skb->len, 0);
 		break;
 
 	case HIDP_DATA_RTYPE_OTHER:
@@ -614,7 +597,8 @@ static void hidp_recv_intr_frame(struct hidp_session *session,
 			hidp_input_report(session, skb);
 
 		if (session->hid) {
-			hid_input_report(session->hid, HID_INPUT_REPORT, skb->data, skb->len, 1);
+			hidp_process_report(session, HID_INPUT_REPORT,
+					    skb->data, skb->len, 1);
 			BT_DBG("report len %d", skb->len);
 		}
 	} else {
@@ -728,87 +712,6 @@ static void hidp_close(struct hid_device *hid)
 {
 }
 
-#if (LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,27))
-static const struct {
-	__u16 idVendor;
-	__u16 idProduct;
-	unsigned quirks;
-} hidp_blacklist[] = {
-	/* Apple wireless Mighty Mouse */
-	{ 0x05ac, 0x030c, HID_QUIRK_MIGHTYMOUSE | HID_QUIRK_INVERT_HWHEEL },
-
-	{ }	/* Terminating entry */
-};
-static void hidp_setup_quirks(struct hid_device *hid)
-{
-	unsigned int n;
-
-	for (n = 0; hidp_blacklist[n].idVendor; n++)
-		if (hidp_blacklist[n].idVendor == le16_to_cpu(hid->vendor) &&
-				hidp_blacklist[n].idProduct == le16_to_cpu(hid->product))
-			hid->quirks = hidp_blacklist[n].quirks;
-}
-
-static int hidp_setup_hid(struct hidp_session *session,
-			  struct hidp_connadd_req *req)
-{
-	struct hid_device *hid;
-	struct hid_report *report;
-	bdaddr_t src, dst;
-	unsigned char *buf;
-
-	buf = kmalloc(req->rd_size, GFP_KERNEL);
-	if (!buf)
-		return -ENOMEM;
-
-	if (copy_from_user(buf, req->rd_data, req->rd_size)) {
-		kfree(buf);
-		return -EFAULT;
-	}
-
-	hid = hid_parse_report(buf, req->rd_size);
-	kfree(buf);
-	if (!session->hid)
-		return -EINVAL;
-
-	session->hid = hid;
-
-	hid->driver_data = session;
-
-	baswap(&src, &bt_sk(session->ctrl_sock->sk)->src);
-	baswap(&dst, &bt_sk(session->ctrl_sock->sk)->dst);
-
-	hid->bus     = BUS_BLUETOOTH;
-	hid->vendor  = req->vendor;
-	hid->product = req->product;
-	hid->version = req->version;
-	hid->country = req->country;
-
-	strlcpy(hid->name, req->name, 128);
-	strlcpy(hid->phys, batostr(&src), 64);
-	strlcpy(hid->uniq, batostr(&dst), 64);
-
-	hid->dev = hidp_get_device(session);
-	hid->hid_open  = hidp_open;
-	hid->hid_close = hidp_close;
-
-	hid->hidinput_input_event = hidp_hidinput_event;
-
-	hidp_setup_quirks(hid);
-
-	list_for_each_entry(report, &hid->report_enum[HID_INPUT_REPORT].report_list, list)
-		hidp_send_report(session, report);
-
-	list_for_each_entry(report, &hid->report_enum[HID_FEATURE_REPORT].report_list, list)
-		hidp_send_report(session, report);
-
-	if (hidinput_connect(hid) == 0)
-		hid->claimed |= HID_CLAIMED_INPUT;
-
-	return 0;
-}
-#else
-
 static int hidp_parse(struct hid_device *hid)
 {
 	struct hidp_session *session = hid->driver_data;
@@ -886,9 +789,7 @@ static int hidp_setup_hid(struct hidp_session *session,
 	hid->dev.parent = &session->conn->hcon->dev;
 	hid->ll_driver = &hidp_hid_driver;
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
 	hid->hid_get_raw_report = hidp_get_raw_report;
-#endif
 	hid->hid_output_raw_report = hidp_output_raw_report;
 
 	/* True if device is blacklisted in drivers/hid/hid-core.c */
@@ -906,7 +807,6 @@ fault:
 
 	return err;
 }
-#endif
 
 /* initialize session devices */
 static int hidp_session_dev_init(struct hidp_session *session,
@@ -969,17 +869,10 @@ static int hidp_session_dev_add(struct hidp_session *session)
 /* remove HID/input devices from their bus systems */
 static void hidp_session_dev_del(struct hidp_session *session)
 {
-	if (session->hid) {
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,27))
+	if (session->hid)
 		hid_destroy_device(session->hid);
-#else
-		if (session->hid->claimed & HID_CLAIMED_INPUT)
-			hidinput_disconnect(session->hid);
-		hid_free_device(session->hid);
-#endif
-	} else if (session->input) {
+	else if (session->input)
 		input_unregister_device(session->input);
-	}
 }
 
 /*

@@ -2672,6 +2672,17 @@ static inline bool netif_supports_nofcs(struct net_device *dev)
 }
 
 extern struct pernet_operations __net_initdata loopback_net_ops;
+
+#define netdev_notifier_info_to_dev(ndev) ndev
+#define netdev_notify_peers(dev) netif_notify_peers(dev)
+
+#define mc_addr(ha) (ha)->addr
+static inline void netdev_attach_ops(struct net_device *dev,
+		       const struct net_device_ops *ops)
+{
+	dev->netdev_ops = ops;
+}
+
 /* Logging, debugging and troubleshooting/diagnostic helpers. */
 
 /* netdev_printk helpers, similar to dev_printk */

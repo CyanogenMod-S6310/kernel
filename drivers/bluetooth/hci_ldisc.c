@@ -32,7 +32,7 @@
 #include <linux/interrupt.h>
 #include <linux/ptrace.h>
 #include <linux/poll.h>
-
+#include <linux/version.h>
 #include <linux/slab.h>
 #include <linux/tty.h>
 #include <linux/errno.h>
@@ -380,6 +380,13 @@ static void hci_uart_tty_receive(struct tty_struct *tty, const u8 *data, char *f
 	if (!hu || tty != hu->tty)
 		return;
 
+#ifdef CONFIG_BT_CSR_7820
+	if (hu->hdev == NULL) {
+		BT_ERR("hci_uart_tty_receive : hu->hdev is null");
+		return;
+	}
+#endif
+
 	if (!test_bit(HCI_UART_PROTO_SET, &hu->flags))
 		return;
 
@@ -586,19 +593,19 @@ static int __init hci_uart_init(void)
 		return err;
 	}
 
-#ifdef CONFIG_BT_HCIUART_H4
+#ifdef CPTCFG_BT_HCIUART_H4
 	h4_init();
 #endif
-#ifdef CONFIG_BT_HCIUART_BCSP
+#ifdef CPTCFG_BT_HCIUART_BCSP
 	bcsp_init();
 #endif
-#ifdef CONFIG_BT_HCIUART_LL
+#ifdef CPTCFG_BT_HCIUART_LL
 	ll_init();
 #endif
-#ifdef CONFIG_BT_HCIUART_ATH3K
+#ifdef CPTCFG_BT_HCIUART_ATH3K
 	ath_init();
 #endif
-#ifdef CONFIG_BT_HCIUART_3WIRE
+#ifdef CPTCFG_BT_HCIUART_3WIRE
 	h5_init();
 #endif
 
@@ -609,19 +616,19 @@ static void __exit hci_uart_exit(void)
 {
 	int err;
 
-#ifdef CONFIG_BT_HCIUART_H4
+#ifdef CPTCFG_BT_HCIUART_H4
 	h4_deinit();
 #endif
-#ifdef CONFIG_BT_HCIUART_BCSP
+#ifdef CPTCFG_BT_HCIUART_BCSP
 	bcsp_deinit();
 #endif
-#ifdef CONFIG_BT_HCIUART_LL
+#ifdef CPTCFG_BT_HCIUART_LL
 	ll_deinit();
 #endif
-#ifdef CONFIG_BT_HCIUART_ATH3K
+#ifdef CPTCFG_BT_HCIUART_ATH3K
 	ath_deinit();
 #endif
-#ifdef CONFIG_BT_HCIUART_3WIRE
+#ifdef CPTCFG_BT_HCIUART_3WIRE
 	h5_deinit();
 #endif
 
