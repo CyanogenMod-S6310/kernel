@@ -155,6 +155,7 @@ struct hci_dev {
 	__u8		le_white_list_size;
 	__u8		le_states[8];
 	__u8		commands[64];
+	__u8		ssp_mode;
 	__u8		hci_ver;
 	__u16		hci_rev;
 	__u8		lmp_ver;
@@ -272,6 +273,11 @@ struct hci_dev {
 	struct list_head	remote_oob_data;
 
 	struct hci_dev_stats	stat;
+
+	struct sk_buff_head	driver_init;
+
+	void			*driver_data;
+	void			*core_data;
 
 	atomic_t		promisc;
 
@@ -448,7 +454,7 @@ enum {
 	HCI_CONN_SSP_ENABLED,
 	HCI_CONN_POWER_SAVE,
 	HCI_CONN_REMOTE_OOB,
-        HCI_CONN_6LOWPAN,
+	HCI_CONN_6LOWPAN,
 };
 
 static inline bool hci_conn_ssp_enabled(struct hci_conn *conn)
@@ -1021,6 +1027,9 @@ static inline bool eir_has_data_type(u8 *data, size_t data_len, u8 type)
 
 int hci_register_cb(struct hci_cb *hcb);
 int hci_unregister_cb(struct hci_cb *hcb);
+
+int hci_register_notifier(struct notifier_block *nb);
+int hci_unregister_notifier(struct notifier_block *nb);
 
 struct hci_request {
 	struct hci_dev		*hdev;

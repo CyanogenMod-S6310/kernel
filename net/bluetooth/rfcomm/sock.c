@@ -26,27 +26,8 @@
  */
 
 #include <linux/export.h>
-#include <linux/module.h>
-
-#include <linux/types.h>
-#include <linux/errno.h>
-#include <linux/kernel.h>
-#include <linux/sched.h>
-#include <linux/slab.h>
-#include <linux/poll.h>
-#include <linux/fcntl.h>
-#include <linux/init.h>
-#include <linux/interrupt.h>
-#include <linux/socket.h>
-#include <linux/skbuff.h>
-#include <linux/list.h>
-#include <linux/device.h>
 #include <linux/debugfs.h>
-#include <linux/seq_file.h>
-#include <net/sock.h>
-
-#include <asm/system.h>
-#include <linux/uaccess.h>
+#include <linux/version.h>
 
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>
@@ -325,7 +306,7 @@ static struct sock *rfcomm_sock_alloc(struct net *net, struct socket *sock, int 
 	return sk;
 }
 
-#if defined(CONFIG_BACKPORT_OPTION_BT_SOCK_CREATE_NEEDS_KERN)
+#if defined(CPTCFG_BACKPORT_OPTION_BT_SOCK_CREATE_NEEDS_KERN)
 static int rfcomm_sock_create(struct net *net, struct socket *sock,
 			      int protocol, int kern)
 #else
@@ -900,7 +881,7 @@ static int rfcomm_sock_ioctl(struct socket *sock, unsigned int cmd, unsigned lon
 	err = bt_sock_ioctl(sock, cmd, arg);
 
 	if (err == -ENOIOCTLCMD) {
-#ifdef CONFIG_BT_RFCOMM_TTY
+#ifdef CPTCFG_BT_RFCOMM_TTY
 		lock_sock(sk);
 		err = rfcomm_dev_ioctl(sk, cmd, (void __user *) arg);
 		release_sock(sk);
