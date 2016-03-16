@@ -1833,6 +1833,18 @@ unlock:
 	hci_dev_unlock(hdev);
 }
 
+static void hci_event_auth_repeated_attempts_timeout(unsigned long arg)
+{
+	struct hci_conn *conn = (void *) arg;
+	struct hci_cp_auth_requested cp;
+	cp.handle = cpu_to_le16(conn->handle);
+
+	BT_ERR("hci_event_auth_repeated_attempts_timeout");
+	hci_send_cmd(conn->hdev, HCI_OP_AUTH_REQUESTED, sizeof(cp), &cp);
+
+	del_timer(&conn->repeatedattempts_timer);
+}
+
 static void hci_auth_complete_evt(struct hci_dev *hdev, struct sk_buff *skb)
 {
 	struct hci_ev_auth_complete *ev = (void *) skb->data;
@@ -1845,6 +1857,42 @@ static void hci_auth_complete_evt(struct hci_dev *hdev, struct sk_buff *skb)
 	conn = hci_conn_hash_lookup_handle(hdev, __le16_to_cpu(ev->handle));
 	if (!conn)
 		goto unlock;
+
+	/* for pin or key missing case (noBonding) */
+	BT_DBG("conn->remote_auth %x, conn->remote_cap %x, conn->auth_type %x, conn->io_capability %x",
+		conn->remote_auth, conn->remote_cap, conn->auth_type, conn->io_capability);
+
+    #if defined(CONFIG_BT_CSR_7820) 
+	if (ev->status == 0x06) {
+		struct hci_cp_auth_requested cp;
+		hci_remove_link_key(hdev, &conn->dst);
+
+		BT_ERR("Pin or key missing on 8810");
+
+		if(hdev->ssp_mode > 0 && conn->ssp_mode > 0) {
+		setup_timer(&conn->repeatedattempts_timer, hci_event_auth_repeated_attempts_timeout, (unsigned long) conn);
+
+		mod_timer(&conn->repeatedattempts_timer, jiffies + 500);
+
+		hci_dev_unlock(hdev);
+
+		BT_ERR("SSP condition!!!");
+		return;
+		}
+    }
+	#else
+	if (ev->status == 0x06 && hdev->ssp_mode > 0 &&
+						conn->ssp_mode > 0) {
+		struct hci_cp_auth_requested cp;
+		hci_remove_link_key(hdev, &conn->dst);
+		cp.handle = cpu_to_le16(conn->handle);
+		hci_send_cmd(conn->hdev, HCI_OP_AUTH_REQUESTED,
+						sizeof(cp), &cp);
+		hci_dev_unlock(hdev);
+		BT_DBG("Pin or key missing !!!");
+		return;
+	}
+	#endif
 
 	if (!ev->status) {
 		if (!hci_conn_ssp_enabled(conn) &&
