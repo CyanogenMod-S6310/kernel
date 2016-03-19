@@ -26,7 +26,6 @@
 
 #include <linux/export.h>
 #include <linux/file.h>
-#include <linux/compat.h>
 
 #include "bnep.h"
 
@@ -186,12 +185,8 @@ static struct proto bnep_proto = {
 	.obj_size	= sizeof(struct bt_sock)
 };
 
-#if defined(CPTCFG_BACKPORT_OPTION_BT_SOCK_CREATE_NEEDS_KERN)
 static int bnep_sock_create(struct net *net, struct socket *sock, int protocol,
 			    int kern)
-#else
-static int bnep_sock_create(struct net *net, struct socket *sock, int protocol)
-#endif
 {
 	struct sock *sk;
 

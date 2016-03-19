@@ -28,14 +28,6 @@
 #include <linux/poll.h>
 #include <net/sock.h>
 #include <linux/seq_file.h>
-#ifdef CONFIG_BT_CSR_7820
-#include "../../../arch/arm/mach-msm/board-msm7627a.h"
-#endif
-
-#ifdef CONFIG_BT_CSR_7820
-#define WLAN_33V_CONTROL_FOR_BT_ANTENNA
-extern void bluetooth_setup_ldo_33v(int on);
-#endif
 
 #ifndef AF_BLUETOOTH
 #define AF_BLUETOOTH	31
@@ -73,6 +65,7 @@ struct bt_security {
 #define BT_SECURITY_LOW		1
 #define BT_SECURITY_MEDIUM	2
 #define BT_SECURITY_HIGH	3
+#define BT_SECURITY_FIPS	4
 
 #define BT_DEFER_SETUP	7
 
@@ -127,9 +120,9 @@ struct bt_voice {
 #define BT_RCVMTU		13
 
 __printf(1, 2)
-int bt_info(const char *fmt, ...);
+void bt_info(const char *fmt, ...);
 __printf(1, 2)
-int bt_err(const char *fmt, ...);
+void bt_err(const char *fmt, ...);
 
 #define BT_INFO(fmt, ...)	bt_info(fmt "\n", ##__VA_ARGS__)
 #define BT_ERR(fmt, ...)	bt_err(fmt "\n", ##__VA_ARGS__)
@@ -267,15 +260,15 @@ struct sock *bt_accept_dequeue(struct sock *parent, struct socket *newsock);
 
 /* Skb helpers */
 struct l2cap_ctrl {
-	unsigned int	sframe:1,
-			poll:1,
-			final:1,
-			fcs:1,
-			sar:2,
-			super:2;
-	__u16		reqseq;
-	__u16		txseq;
-	__u8		retries;
+	__u8	sframe:1,
+		poll:1,
+		final:1,
+		fcs:1,
+		sar:2,
+		super:2;
+	__u16	reqseq;
+	__u16	txseq;
+	__u8	retries;
 };
 
 struct hci_dev;
@@ -291,6 +284,7 @@ struct hci_req_ctrl {
 struct bt_skb_cb {
 	__u8 pkt_type;
 	__u8 incoming;
+	__u16 opcode;
 	__u16 expect;
 	__u8 force_active;
 	struct l2cap_chan *chan;
@@ -366,4 +360,11 @@ void sco_exit(void);
 
 void bt_sock_reclassify_lock(struct sock *sk, int proto);
 
+// @daniel, from backport-include/linux/netdevice.h
+#define alloc_netdev_mqs1(sizeof_priv, name, name_assign_type, setup, txqs, rxqs) \
+	alloc_netdev_mqs(sizeof_priv, name, setup, txqs, rxqs)
+
+#define alloc_netdev1(sizeof_priv, name, name_assign_type, setup) \
+	alloc_netdev_mqs1(sizeof_priv, name, name_assign_type, setup, 1, 1)
+// @
 #endif /* __BLUETOOTH_H */

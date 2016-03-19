@@ -49,7 +49,7 @@ static int bnep_net_close(struct net_device *dev)
 
 static void bnep_net_set_mc_list(struct net_device *dev)
 {
-#ifdef CPTCFG_BT_BNEP_MC_FILTER
+#ifdef CONFIG_BT_BNEP_MC_FILTER
 	struct bnep_session *s = netdev_priv(dev);
 	struct sock *sk = s->sock->sk;
 	struct bnep_set_filter_req *r;
@@ -93,10 +93,8 @@ static void bnep_net_set_mc_list(struct net_device *dev)
 		netdev_for_each_mc_addr(ha, dev) {
 			if (i == BNEP_MAX_MULTICAST_FILTERS)
 				break;
-			memcpy(__skb_put(skb, ETH_ALEN), mc_addr(ha),
-			       ETH_ALEN);
-			memcpy(__skb_put(skb, ETH_ALEN), mc_addr(ha),
-			       ETH_ALEN);
+			memcpy(__skb_put(skb, ETH_ALEN), ha->addr, ETH_ALEN);
+			memcpy(__skb_put(skb, ETH_ALEN), ha->addr, ETH_ALEN);
 
 			i++;
 		}
@@ -120,7 +118,7 @@ static void bnep_net_timeout(struct net_device *dev)
 	netif_wake_queue(dev);
 }
 
-#ifdef CPTCFG_BT_BNEP_MC_FILTER
+#ifdef CONFIG_BT_BNEP_MC_FILTER
 static int bnep_net_mc_filter(struct sk_buff *skb, struct bnep_session *s)
 {
 	struct ethhdr *eh = (void *) skb->data;
@@ -131,7 +129,7 @@ static int bnep_net_mc_filter(struct sk_buff *skb, struct bnep_session *s)
 }
 #endif
 
-#ifdef CPTCFG_BT_BNEP_PROTO_FILTER
+#ifdef CONFIG_BT_BNEP_PROTO_FILTER
 /* Determine ether protocol. Based on eth_type_trans. */
 static u16 bnep_net_eth_proto(struct sk_buff *skb)
 {
@@ -171,14 +169,14 @@ static netdev_tx_t bnep_net_xmit(struct sk_buff *skb,
 
 	BT_DBG("skb %p, dev %p", skb, dev);
 
-#ifdef CPTCFG_BT_BNEP_MC_FILTER
+#ifdef CONFIG_BT_BNEP_MC_FILTER
 	if (bnep_net_mc_filter(skb, s)) {
 		kfree_skb(skb);
 		return NETDEV_TX_OK;
 	}
 #endif
 
-#ifdef CPTCFG_BT_BNEP_PROTO_FILTER
+#ifdef CONFIG_BT_BNEP_PROTO_FILTER
 	if (bnep_net_proto_filter(skb, s)) {
 		kfree_skb(skb);
 		return NETDEV_TX_OK;
@@ -225,7 +223,7 @@ void bnep_net_setup(struct net_device *dev)
 
 	ether_setup(dev);
 	dev->priv_flags &= ~IFF_TX_SKB_SHARING;
-	netdev_attach_ops(dev, &bnep_netdev_ops);
+	dev->netdev_ops = &bnep_netdev_ops;
 
 	dev->watchdog_timeo  = HZ * 2;
 }
