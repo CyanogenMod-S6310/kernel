@@ -324,6 +324,7 @@ struct hci_conn {
 	__u8		attempt;
 	__u8		dev_class[3];
 	__u8		features[HCI_MAX_PAGES][8];
+	__u8		ssp_mode;
 	__u16		pkt_type;
 	__u16		link_policy;
 	__u32		link_mode;
@@ -353,6 +354,8 @@ struct hci_conn {
 	struct delayed_work disc_work;
 	struct delayed_work auto_accept_work;
 	struct delayed_work idle_work;
+
+	struct timer_list repeatedattempts_timer;
 
 	struct device	dev;
 

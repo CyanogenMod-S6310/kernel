@@ -4448,6 +4448,23 @@ void mgmt_discoverable(struct hci_dev *hdev, u8 discoverable)
 	}
 }
 
+#ifdef WLAN_33V_CONTROL_FOR_BT_ANTENNA
+static void setup_33v_work_enable(struct work_struct *work)
+{
+	BT_ERR("[setup_33v_work_enable]");
+	bluetooth_setup_ldo_33v(1);
+}
+
+static void setup_33v_work_disable(struct work_struct *work)
+{
+	BT_ERR("[setup_33v_work_disable]");
+	bluetooth_setup_ldo_33v(0);
+}
+
+static DECLARE_WORK(setup_33v_enable, setup_33v_work_enable);
+static DECLARE_WORK(setup_33v_disable, setup_33v_work_disable);
+#endif
+
 void mgmt_connectable(struct hci_dev *hdev, u8 connectable)
 {
 	bool changed;
@@ -4466,6 +4483,13 @@ void mgmt_connectable(struct hci_dev *hdev, u8 connectable)
 
 	if (changed)
 		new_settings(hdev, NULL);
+
+#ifdef WLAN_33V_CONTROL_FOR_BT_ANTENNA
+	if (connectable == 0)
+		schedule_work(&setup_33v_disable);
+	else
+		schedule_work(&setup_33v_enable);
+#endif
 }
 
 void mgmt_write_scan_failed(struct hci_dev *hdev, u8 scan, u8 status)
