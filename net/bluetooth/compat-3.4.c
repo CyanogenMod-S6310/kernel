@@ -117,72 +117,8 @@ static struct regmap_bus regmap_i2c = {
 };
 #endif /* defined(CONFIG_REGMAP_I2C) */
 
-/**
- * devm_regmap_init(): Initialise managed register map
- *
- * @dev: Device that will be interacted with
- * @bus: Bus-specific callbacks to use with device
- * @bus_context: Data passed to bus-specific callbacks
- * @config: Configuration for register map
- *
- * The return value will be an ERR_PTR() on error or a valid pointer
- * to a struct regmap.  This function should generally not be called
- * directly, it should be called by bus-specific init functions.  The
- * map will be automatically freed by the device management code.
- */
-struct regmap *devm_regmap_init(struct device *dev,
-				const struct regmap_bus *bus,
-				const struct regmap_config *config)
-{
-	struct regmap **ptr, *regmap;
-
-	ptr = devres_alloc(devm_regmap_release, sizeof(*ptr), GFP_KERNEL);
-	if (!ptr)
-		return ERR_PTR(-ENOMEM);
-
-	regmap = regmap_init(dev,
-			     bus,
-			     config);
-	if (!IS_ERR(regmap)) {
-		*ptr = regmap;
-		devres_add(dev, ptr);
-	} else {
-		devres_free(ptr);
-	}
-
-	return regmap;
-}
-EXPORT_SYMBOL_GPL(devm_regmap_init);
-
-#if defined(CONFIG_REGMAP_I2C)
-/**
- * devm_regmap_init_i2c(): Initialise managed register map
- *
- * @i2c: Device that will be interacted with
- * @config: Configuration for register map
- *
- * The return value will be an ERR_PTR() on error or a valid pointer
- * to a struct regmap.  The regmap will be automatically freed by the
- * device management code.
- */
-struct regmap *devm_regmap_init_i2c(struct i2c_client *i2c,
-				    const struct regmap_config *config)
-{
-	return devm_regmap_init(&i2c->dev, &regmap_i2c, config);
-}
-EXPORT_SYMBOL_GPL(devm_regmap_init_i2c);
-#endif /* defined(CONFIG_REGMAP_I2C) */
-
 #endif /* defined(CONFIG_REGMAP) */
 #endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(3,2,0)) */
-
-int simple_open(struct inode *inode, struct file *file)
-{
-	if (inode->i_private)
-		file->private_data = inode->i_private;
-	return 0;
-}
-EXPORT_SYMBOL_GPL(simple_open);
 
 /* daniel, backport 3.13-1, from backport-3.12.c
  * Allocator for buffer that is going to be passed to hid_output_report()

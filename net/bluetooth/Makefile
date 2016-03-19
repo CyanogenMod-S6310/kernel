@@ -11,8 +11,8 @@ obj-$(CONFIG_BT_6LOWPAN) += bluetooth_6lowpan.o
 
 bluetooth_6lowpan-y := 6lowpan.o
 
-bluetooth-y := af_bluetooth.o compat-3.1.o compat-3.3.o compat-3.4.o hci_core.o hci_conn.o hci_event.o mgmt.o \
+bluetooth-y := af_bluetooth.o compat-3.3.o compat-3.4.o hci_core.o hci_conn.o hci_event.o mgmt.o \
 	hci_sock.o hci_sysfs.o l2cap_core.o l2cap_sock.o smp.o sco.o lib.o \
-	a2mp.o amp.o compat-3.1.o compat-3.3.o compat-3.4.o
+	a2mp.o amp.o compat-3.3.o compat-3.4.o
 
 subdir-ccflags-y += -D__CHECK_ENDIAN__

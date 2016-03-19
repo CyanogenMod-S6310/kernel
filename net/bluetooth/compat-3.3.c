@@ -148,22 +148,3 @@ backport_alloc_workqueue(const char *fmt, unsigned int flags,
 	return wq;
 }
 EXPORT_SYMBOL_GPL(backport_alloc_workqueue);
-
-void backport_destroy_workqueue(struct workqueue_struct *wq)
-{
-	struct wq_name *n, *tmp;
-
-	/* call original */
-	destroy_workqueue1(wq);
-
-	spin_lock(&wq_name_lock);
-	list_for_each_entry_safe(n, tmp, &wq_name_list, list) {
-		if (n->wq == wq) {
-			list_del(&n->list);
-			kfree(n);
-			break;
-		}
-	}
-	spin_unlock(&wq_name_lock);
-}
-EXPORT_SYMBOL_GPL(backport_destroy_workqueue);
