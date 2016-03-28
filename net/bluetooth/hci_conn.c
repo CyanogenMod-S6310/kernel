@@ -999,6 +999,13 @@ int hci_conn_security(struct hci_conn *conn, __u8 sec_level, __u8 auth_type,
 	if (sec_level == BT_SECURITY_SDP)
 		return 1;
 
+    #ifdef CONFIG_BT_CSR_7820
+	if (!hci_conn_ssp_enabled(conn)) {
+		BT_ERR("SET SSP manually again...");
+		set_bit(HCI_CONN_SSP_ENABLED, &conn->flags);
+	}
+    #endif
+
 	/* For non 2.1 devices and low security level we don't need the link
 	   key. */
 	if (sec_level == BT_SECURITY_LOW && !hci_conn_ssp_enabled(conn))

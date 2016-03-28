@@ -29,6 +29,15 @@
 #include <net/sock.h>
 #include <linux/seq_file.h>
 
+#ifdef CONFIG_BT_CSR_7820
+#include "../../../arch/arm/mach-msm/board-msm7627a.h"
+#endif
+
+#ifdef CONFIG_BT_CSR_7820
+#define WLAN_33V_CONTROL_FOR_BT_ANTENNA
+extern void bluetooth_setup_ldo_33v(int on);
+#endif
+
 #ifndef AF_BLUETOOTH
 #define AF_BLUETOOTH	31
 #define PF_BLUETOOTH	AF_BLUETOOTH

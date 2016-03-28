@@ -59,6 +59,10 @@ static inline u32 prandom_u32_max(u32 ep_ro)
 #define MGMT_VERSION	1
 #define MGMT_REVISION	7
 
+#ifdef CONFIG_BT_CSR_7820
+#define WLAN_33V_CONTROL_FOR_BT_ANTENNA
+#endif
+
 static const u16 mgmt_commands[] = {
 	MGMT_OP_READ_INDEX_LIST,
 	MGMT_OP_READ_INFO,

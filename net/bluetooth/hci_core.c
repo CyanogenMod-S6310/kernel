@@ -4474,6 +4474,10 @@ static void hci_send_frame(struct hci_dev *hdev, struct sk_buff *skb)
 	/* Get rid of skb owner, prior to sending to the driver. */
 	skb_orphan(skb);
 
+#ifdef CONFIG_BT_CSR_7820
+	hci_notify(hdev, HCI_DEV_WRITE);
+#endif
+
 	err = hdev->send(hdev, skb);
 	if (err < 0) {
 		BT_ERR("%s sending frame failed (%d)", hdev->name, err);
@@ -5406,16 +5410,25 @@ static void hci_rx_work(struct work_struct *work)
 		case HCI_EVENT_PKT:
 			BT_DBG("%s Event packet", hdev->name);
 			hci_event_packet(hdev, skb);
+#ifdef CONFIG_BT_CSR_7820
+			hci_notify(hdev, HCI_DEV_READ);
+#endif
 			break;
 
 		case HCI_ACLDATA_PKT:
 			BT_DBG("%s ACL data packet", hdev->name);
 			hci_acldata_packet(hdev, skb);
+#ifdef CONFIG_BT_CSR_7820
+			hci_notify(hdev, HCI_DEV_READ);
+#endif
 			break;
 
 		case HCI_SCODATA_PKT:
 			BT_DBG("%s SCO data packet", hdev->name);
 			hci_scodata_packet(hdev, skb);
+#ifdef CONFIG_BT_CSR_7820
+			hci_notify(hdev, HCI_DEV_READ);
+#endif
 			break;
 
 		default:

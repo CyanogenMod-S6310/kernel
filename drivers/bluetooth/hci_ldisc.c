@@ -390,6 +390,12 @@ static void hci_uart_tty_receive(struct tty_struct *tty, const u8 *data, char *f
 	if (!hu || tty != hu->tty)
 		return;
 
+#ifdef CONFIG_BT_CSR_7820
+    if (hu->hdev == NULL) {
+        BT_ERR("hci_uart_tty_receive : hu->hdev is null");
+    }
+#endif
+
 	if (!test_bit(HCI_UART_PROTO_SET, &hu->flags))
 		return;
 
@@ -614,9 +620,9 @@ static int __init hci_uart_init(void)
 #ifdef CONFIG_BT_HCIUART_H4
 	h4_init();
 #endif
-#ifdef CONFIG_BT_HCIUART_BCSP
+
 	bcsp_init();
-#endif
+
 #ifdef CONFIG_BT_HCIUART_LL
 	ll_init();
 #endif
@@ -625,6 +631,9 @@ static int __init hci_uart_init(void)
 #endif
 #ifdef CONFIG_BT_HCIUART_3WIRE
 	h5_init();
+#endif
+#ifdef CONFIG_BT_HCIUART_IBS
+	ibs_init();
 #endif
 
 	return 0;
@@ -637,9 +646,9 @@ static void __exit hci_uart_exit(void)
 #ifdef CONFIG_BT_HCIUART_H4
 	h4_deinit();
 #endif
-#ifdef CONFIG_BT_HCIUART_BCSP
+
 	bcsp_deinit();
-#endif
+
 #ifdef CONFIG_BT_HCIUART_LL
 	ll_deinit();
 #endif
@@ -649,6 +658,10 @@ static void __exit hci_uart_exit(void)
 #ifdef CONFIG_BT_HCIUART_3WIRE
 	h5_deinit();
 #endif
+#ifdef CONFIG_BT_HCIUART_IBS
+	ibs_deinit();
+#endif
+
 
 	/* Release tty registration of line discipline */
 	err = tty_unregister_ldisc(N_HCI);
