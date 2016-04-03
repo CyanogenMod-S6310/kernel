@@ -26,21 +26,6 @@
 static __u8 *kye_report_fixup(struct hid_device *hdev, __u8 *rdesc,
 		unsigned int *rsize)
 {
-<<<<<<< HEAD
-	if (*rsize >= 74 &&
-		rdesc[61] == 0x05 && rdesc[62] == 0x08 &&
-		rdesc[63] == 0x19 && rdesc[64] == 0x08 &&
-		rdesc[65] == 0x29 && rdesc[66] == 0x0f &&
-		rdesc[71] == 0x75 && rdesc[72] == 0x08 &&
-		rdesc[73] == 0x95 && rdesc[74] == 0x01) {
-		hid_info(hdev,
-			 "fixing up Kye/Genius Ergo Mouse report descriptor\n");
-		rdesc[62] = 0x09;
-		rdesc[64] = 0x04;
-		rdesc[66] = 0x07;
-		rdesc[72] = 0x01;
-		rdesc[74] = 0x08;
-=======
 	switch (hdev->product) {
 	case USB_DEVICE_ID_KYE_ERGO_525V:
 		/* the fixups that need to be done:
@@ -50,20 +35,19 @@ static __u8 *kye_report_fixup(struct hid_device *hdev, __u8 *rdesc,
 		 *   - change the button usage range to 4-7 for the extra
 		 *     buttons
 		 */
-		if (*rsize >= 75 &&
-			rdesc[61] == 0x05 && rdesc[62] == 0x08 &&
-			rdesc[63] == 0x19 && rdesc[64] == 0x08 &&
-			rdesc[65] == 0x29 && rdesc[66] == 0x0f &&
-			rdesc[71] == 0x75 && rdesc[72] == 0x08 &&
-			rdesc[73] == 0x95 && rdesc[74] == 0x01) {
-			hid_info(hdev,
-				 "fixing up Kye/Genius Ergo Mouse "
-				 "report descriptor\n");
-			rdesc[62] = 0x09;
-			rdesc[64] = 0x04;
-			rdesc[66] = 0x07;
-			rdesc[72] = 0x01;
-			rdesc[74] = 0x08;
+			if (*rsize >= 74 &&
+				rdesc[61] == 0x05 && rdesc[62] == 0x08 &&
+				rdesc[63] == 0x19 && rdesc[64] == 0x08 &&
+				rdesc[65] == 0x29 && rdesc[66] == 0x0f &&
+				rdesc[71] == 0x75 && rdesc[72] == 0x08 &&
+				rdesc[73] == 0x95 && rdesc[74] == 0x01) {
+				hid_info(hdev,
+					 "fixing up Kye/Genius Ergo Mouse report descriptor\n");
+				rdesc[62] = 0x09;
+				rdesc[64] = 0x04;
+				rdesc[66] = 0x07;
+				rdesc[72] = 0x01;
+				rdesc[74] = 0x08;
 		}
 		break;
 	case USB_DEVICE_ID_KYE_EASYPEN_I405X:
@@ -84,7 +68,6 @@ static __u8 *kye_report_fixup(struct hid_device *hdev, __u8 *rdesc,
 			*rsize = sizeof(easypen_m610x_rdesc_fixed);
 		}
 		break;
->>>>>>> 5de4cdf... Squashed update of kernel from 3.4.103 to 3.4.104
 	}
 	return rdesc;
 }
