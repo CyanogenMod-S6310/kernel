@@ -2,10 +2,9 @@ NOTE: This kernel release is UNSTABLE and meant for development of the Samsung G
 Kernel version: 3.4.107
 GPU Clock: 192 MHz
 CPU Clock: Stock
-Compiles: Unknown
+Compiles: Yes
 
 What needs to be done?
-- MTP
 - Fix up all of Samsung's crappy code
 
 
